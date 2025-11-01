@@ -1,21 +1,23 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/cli.ts'],
   outDir: 'dist',
-  tsconfig: './tsconfig.build.json', // Use build-specific tsconfig
+  tsconfig: './tsconfig.build.json',
   sourcemap: true,
   clean: true,
-  format: ['esm'], // Ensure you're targeting CommonJS
-  dts: false, // Skip DTS generation to avoid external import issues // Ensure you're targeting CommonJS
+  format: ['esm'],
+  dts: false, // Disabled due to experimental AI SDK types
   external: [
-    'dotenv', // Externalize dotenv to prevent bundling
-    'fs', // Externalize fs to use Node.js built-in module
-    'path', // Externalize other built-ins if necessary
+    'dotenv',
+    'fs',
+    'path',
     'https',
     'http',
     'node-fetch',
-    '@elizaos/core',
     'zod',
+    '@ai-sdk/google',
+    'ai',
+    'commander',
   ],
 });
