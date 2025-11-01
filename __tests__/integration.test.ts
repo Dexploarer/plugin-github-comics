@@ -1,44 +1,110 @@
-import { describe, it, expect, vi, beforeAll, afterAll, type Mock } from 'vitest';
-import * as plugin from '../src/index';
-import { createMockRuntime, setupLoggerSpies, setupTest } from './test-utils';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { fetchRepositories, configSchema } from '../src/index.js';
 import fetch from 'node-fetch';
 
 vi.mock('node-fetch');
 
 const mockedFetch = fetch as unknown as Mock;
-// Use a constant to make it clear this is a test placeholder
-const TEST_API_KEY = 'test-api-key-placeholder';
 
-beforeAll(() => {
-  setupLoggerSpies();
-});
+describe('Integration: GitHub Comics CLI', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-afterAll(() => {
-  vi.restoreAllMocks();
-});
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
-describe('Integration: githubComicsPlugin', () => {
-  it('initializes with config and executes action', async () => {
-    const mockRuntime = createMockRuntime();
-    if (plugin.githubComicsPlugin.init) {
-      await plugin.githubComicsPlugin.init({ OPENAI_API_KEY: TEST_API_KEY });
-    }
+  describe('configSchema', () => {
+    it('validates correct config', () => {
+      const config = {
+        AI_GATEWAY_API_KEY: 'test-token',
+        GITHUB_TOKEN: 'github-token',
+      };
 
-    const { mockMessage, mockState, callbackFn } = setupTest();
+      const result = configSchema.safeParse(config);
+      expect(result.success).toBe(true);
+    });
 
-    mockedFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => [{ name: 'repo', description: 'desc' }],
-    } as any);
+    it('validates config without optional GitHub token', () => {
+      const config = {
+        AI_GATEWAY_API_KEY: 'test-token',
+      };
 
-    mockedFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: [{ url: 'http://image' }] }),
-    } as any);
+      const result = configSchema.safeParse(config);
+      expect(result.success).toBe(true);
+    });
 
-    const action = plugin.githubComicsPlugin.actions?.[0];
-    if (!action) throw new Error('action missing');
-    await action.handler!(mockRuntime as any, mockMessage as any, mockState as any, { user: 'octocat' }, callbackFn, []);
-    expect(callbackFn).toHaveBeenCalled();
+    it('rejects config without required token', () => {
+      const config = {
+        GITHUB_TOKEN: 'github-token',
+      };
+
+      const result = configSchema.safeParse(config);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('fetchRepositories', () => {
+    it('fetches repositories successfully', async () => {
+      const mockRepos = [
+        { name: 'repo1', description: 'desc1', stargazers_count: 100, language: 'TypeScript' },
+        { name: 'repo2', description: 'desc2', stargazers_count: 50, language: 'JavaScript' },
+      ];
+
+      mockedFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockRepos,
+      } as any);
+
+      const result = await fetchRepositories('octocat');
+
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe('repo1');
+      expect(result[0].description).toBe('desc1');
+      expect(result[0].stargazers_count).toBe(100);
+      expect(result[0].language).toBe('TypeScript');
+    });
+
+    it('includes authorization header when token provided', async () => {
+      mockedFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ name: 'repo', description: 'desc' }],
+      } as any);
+
+      await fetchRepositories('testuser', 'test-token');
+
+      expect(mockedFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/users/testuser/repos'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        })
+      );
+    });
+
+    it('throws error for invalid username', async () => {
+      await expect(fetchRepositories('invalid@username')).rejects.toThrow('Invalid GitHub username');
+    });
+
+    it('throws error when API request fails', async () => {
+      mockedFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      } as any);
+
+      await expect(fetchRepositories('nonexistent')).rejects.toThrow('Failed to fetch repos');
+    });
+
+    it('throws error for empty repository list', async () => {
+      mockedFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      } as any);
+
+      await expect(fetchRepositories('emptyuser')).rejects.toThrow('no public repositories');
+    });
   });
 });

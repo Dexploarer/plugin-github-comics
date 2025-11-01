@@ -1,43 +1,30 @@
 {
-  "name": "plugin-github-comics",
-  "version": "1.0.3",
-  "description": "Generate comic strips from GitHub repos using OpenAI images",
+  "name": "github-comics-cli",
+  "version": "2.0.0",
+  "description": "Generate comic strips from GitHub repos using Gemini Flash 2.5 via Vercel AI Gateway",
   "type": "module",
   "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "bin": {
+    "github-comics": "./dist/cli.js"
+  },
   "dependencies": {
-    "@elizaos/core": "^1.0.0",
-    "@elizaos/plugin-local-ai": "^1.0.0",
+    "@ai-sdk/google": "^1.0.10",
+    "ai": "^4.0.52",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
     "node-fetch": "^3.3.2",
     "zod": "3.24.2"
   },
   "devDependencies": {
-    "@elizaos/cli": "^1.0.0",
+    "@types/node": "^22.10.5",
     "vitest": "3.1.4",
     "typescript": "5.8.2",
     "tsup": "8.4.0"
   },
   "scripts": {
     "build": "tsup",
-    "test:component": "vitest run",
-    "test:e2e": "elizaos test",
-    "test": "npm run test:component && npm run test:e2e"
-  },
-  "agentConfig": {
-    "pluginType": "elizaos:plugin:1.0.0",
-    "pluginParameters": {
-      "OPENAI_API_KEY": {
-        "type": "string",
-        "description": "OpenAI API key"
-      },
-      "GITHUB_TOKEN": {
-        "type": "string",
-        "description": "GitHub personal access token"
-      }
-    }
-  },
-  "packageType": "plugin",
-  "platform": "node",
-  "npmPackage": "plugin-github-comics"
+    "start": "node dist/cli.js",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  }
 }
