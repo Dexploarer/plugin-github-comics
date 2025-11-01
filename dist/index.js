@@ -4,7 +4,7 @@ import {
   fetchRepositories,
   generateComicImage,
   generateGithubComic
-} from "./chunk-VZAPPYEJ.js";
+} from "./chunk-S3NSPQFM.js";
 export {
   configSchema,
   createComicPrompt,

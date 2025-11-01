@@ -1,5 +1,46 @@
 # Changelog
 
+## [2.0.1] - 2025-11-01
+
+### 🐛 Bug Fixes & Code Quality Improvements
+
+Based on automated code review feedback, this patch addresses several important issues:
+
+#### Security & Best Practices
+- **Fixed**: Removed global `process.env` mutation - API key now passed directly to model
+- **Fixed**: Added URL encoding for GitHub usernames to prevent URL manipulation
+- **Fixed**: Corrected environment variable name in CLI help text (AI_GATEWAY_API_KEY)
+
+#### Error Handling
+- **Improved**: More specific error messages based on HTTP status codes
+  - 404: "User not found"
+  - 403: "API rate limit exceeded. Use GITHUB_TOKEN for higher limits."
+- **Improved**: Added finishReason to image generation errors for better debugging
+- **Improved**: Better error context in all error messages
+- **Added**: Environment variable loading error handling
+
+#### Code Structure
+- **Refactored**: Removed console.log from library functions (moved to CLI layer)
+- **Improved**: Better separation of concerns between library and CLI
+- **Fixed**: Library functions are now more reusable in different contexts
+
+#### Testing
+- **Added**: Test for empty repository array handling (16 tests total, up from 12)
+- **Added**: Test for missing optional fields (stargazers_count, language)
+- **Added**: Test for rate limit errors (403)
+- **Added**: Test for non-array API responses
+- **Improved**: More comprehensive error message validation in tests
+
+### 📊 Impact
+
+- All 16 tests passing ✅
+- No breaking changes
+- Better error messages for users
+- More secure code
+- More maintainable architecture
+
+---
+
 ## [2.0.0] - 2025-11-01
 
 ### 🎉 Major Rewrite - Standalone CLI Tool

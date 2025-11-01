@@ -4,22 +4,26 @@ import { Command } from 'commander';
 import { config as loadEnv } from 'dotenv';
 import { generateGithubComic, configSchema } from './index.js';
 
-// Load environment variables
-loadEnv();
+// Load environment variables with error handling
+const envResult = loadEnv();
+if (envResult.error && process.env.NODE_ENV !== 'production') {
+  // Only warn in development if .env is missing, not an error
+  // Users can still provide env vars via command line
+}
 
 const program = new Command();
 
 program
   .name('github-comics')
   .description('Generate comic strips from GitHub repositories using Gemini Flash 2.5 via Vercel AI Gateway')
-  .version('2.0.0');
+  .version('2.0.1');
 
 program
   .command('generate')
   .description('Generate a comic from a GitHub user\'s repositories')
   .argument('<username>', 'GitHub username')
   .option('-t, --token <token>', 'GitHub personal access token (or set GITHUB_TOKEN env var)')
-  .option('-a, --api-key <key>', 'Vercel AI Gateway API token (or set VERCEL_AI_GATEWAY_TOKEN env var)')
+  .option('-a, --api-key <key>', 'Vercel AI Gateway API token (or set AI_GATEWAY_API_KEY env var)')
   .option('-c, --count <number>', 'Number of top repositories to include (default: 3)', '3')
   .option('-o, --output <dir>', 'Output directory for generated images (default: ./output)', './output')
   .action(async (username: string, options: any) => {
@@ -57,6 +61,7 @@ program
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('');
 
+      console.log(`🔍 Fetching repositories for ${username}...`);
       const result = await generateGithubComic(username, config, {
         repoCount,
         outputDir: options.output,

@@ -48,7 +48,10 @@ export async function fetchRepositories(user: string, token?: string): Promise<R
     throw new Error(`Invalid GitHub username: ${user}`);
   }
 
-  const url = `https://api.github.com/users/${user}/repos?sort=updated&per_page=30`;
+  // Safely encode username to prevent URL manipulation
+  const sanitizedUser = encodeURIComponent(user);
+  const url = `https://api.github.com/users/${sanitizedUser}/repos?sort=updated&per_page=30`;
+
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     'User-Agent': 'github-comics-cli'
@@ -61,7 +64,13 @@ export async function fetchRepositories(user: string, token?: string): Promise<R
   const res = await fetch(url, { headers });
 
   if (!res.ok) {
-    throw new Error(`Failed to fetch repos for ${user}: ${res.status} ${res.statusText}`);
+    // Provide more specific error messages based on status code
+    const errorDetail = res.status === 404
+      ? 'User not found'
+      : res.status === 403
+      ? 'API rate limit exceeded. Use GITHUB_TOKEN for higher limits.'
+      : res.statusText;
+    throw new Error(`Failed to fetch repos for ${user}: ${res.status} ${errorDetail}`);
   }
 
   const data = (await res.json()) as any[];
@@ -71,7 +80,7 @@ export async function fetchRepositories(user: string, token?: string): Promise<R
   }
 
   if (data.length === 0) {
-    throw new Error(`User ${user} has no public repositories`);
+    throw new Error(`User '${user}' has no public repositories`);
   }
 
   return data.map((repo) => ({
@@ -121,21 +130,19 @@ export async function generateComicImage(
   apiKey: string,
   outputDir: string = './output'
 ): Promise<ImageResult> {
-  console.log('🎨 Generating comic with Gemini Flash 2.5 via AI Gateway...');
-
   try {
-    // Set API key for AI Gateway
-    process.env.AI_GATEWAY_API_KEY = apiKey;
-
-    // Use Gemini model through AI Gateway
+    // Use Gemini model through AI Gateway, passing API key directly
     const result = await generateText({
-      model: google('gemini-2.5-flash-image-preview'),
+      model: google('gemini-2.5-flash-image-preview', { apiKey }),
       prompt: prompt,
     });
 
     // Check if any files were generated
     if (!result.files || result.files.length === 0) {
-      throw new Error('No images were generated. Make sure you have credits and the model supports image generation.');
+      throw new Error(
+        `No images were generated. Finish reason: ${result.finishReason}. ` +
+        'Make sure you have credits and the model supports image generation.'
+      );
     }
 
     // Ensure output directory exists
@@ -154,9 +161,6 @@ export async function generateComicImage(
 
     // Save using uint8Array directly
     await fs.writeFile(filePath, file.uint8Array);
-
-    console.log(`✅ Comic generated successfully!`);
-    console.log(`📁 Saved to: ${filePath}`);
 
     return {
       filePath,
@@ -188,13 +192,8 @@ export async function generateGithubComic(
 ): Promise<ImageResult> {
   const { repoCount = 3, outputDir = './output' } = options;
 
-  console.log(`🔍 Fetching repositories for ${user}...`);
   const repos = await fetchRepositories(user, config.GITHUB_TOKEN);
-  console.log(`📦 Found ${repos.length} repositories`);
-
-  console.log(`📝 Creating comic prompt...`);
   const prompt = createComicPrompt(repos, user, repoCount);
-
   const image = await generateComicImage(prompt, config.AI_GATEWAY_API_KEY, outputDir);
 
   return image;

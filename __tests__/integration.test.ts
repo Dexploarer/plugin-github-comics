@@ -88,14 +88,26 @@ describe('Integration: GitHub Comics CLI', () => {
       await expect(fetchRepositories('invalid@username')).rejects.toThrow('Invalid GitHub username');
     });
 
-    it('throws error when API request fails', async () => {
+    it('throws error when API request fails with 404', async () => {
       mockedFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
         statusText: 'Not Found',
       } as any);
 
-      await expect(fetchRepositories('nonexistent')).rejects.toThrow('Failed to fetch repos');
+      await expect(fetchRepositories('nonexistent'))
+        .rejects.toThrow('User not found');
+    });
+
+    it('throws error when rate limited (403)', async () => {
+      mockedFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+      } as any);
+
+      await expect(fetchRepositories('ratelimited'))
+        .rejects.toThrow('API rate limit exceeded');
     });
 
     it('throws error for empty repository list', async () => {
@@ -104,7 +116,18 @@ describe('Integration: GitHub Comics CLI', () => {
         json: async () => [],
       } as any);
 
-      await expect(fetchRepositories('emptyuser')).rejects.toThrow('no public repositories');
+      await expect(fetchRepositories('emptyuser'))
+        .rejects.toThrow("has no public repositories");
+    });
+
+    it('throws error for non-array response', async () => {
+      mockedFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ error: 'invalid' }),
+      } as any);
+
+      await expect(fetchRepositories('badresponse'))
+        .rejects.toThrow('Invalid response from GitHub API');
     });
   });
 });

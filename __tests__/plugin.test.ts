@@ -54,4 +54,28 @@ describe('createComicPrompt', () => {
 
     expect(prompt).toContain('⭐ 1000');
   });
+
+  it('handles empty repository array', () => {
+    const repos: RepoInfo[] = [];
+
+    const prompt = createComicPrompt(repos, 'testuser', 3);
+
+    // Should still create a prompt, but with no repo details
+    expect(prompt).toContain('testuser');
+    expect(prompt).toContain('4-panel comic strip');
+    // The repos section will be empty but the prompt structure remains
+  });
+
+  it('handles missing optional fields gracefully', () => {
+    const repos: RepoInfo[] = [
+      { name: 'minimal-repo', description: null, stargazers_count: undefined, language: null },
+    ];
+
+    const prompt = createComicPrompt(repos, 'testuser', 1);
+
+    expect(prompt).toContain('minimal-repo');
+    expect(prompt).toContain('No description');
+    expect(prompt).not.toContain('⭐');
+    expect(prompt).not.toContain('[');
+  });
 });
