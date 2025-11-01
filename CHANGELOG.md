@@ -1,5 +1,56 @@
 # Changelog
 
+## [2.0.2] - 2025-11-01
+
+### 🛡️ Robustness & Validation Improvements
+
+Second round of code review fixes focusing on input validation and error handling.
+
+#### Input Validation
+- **Added**: Comprehensive input validation in `createComicPrompt()`
+  - Validates repos is an array
+  - Validates user is a non-empty string
+  - Validates count is a positive number
+  - Validates repository name field is present and string
+- **Improved**: Better error messages specify what was invalid
+
+#### Error Handling
+- **Improved**: Environment variable loading with contextual messages
+  - Production: Uses system env vars (silent by default)
+  - Development: Warns about missing .env with helpful message
+  - Honors DEBUG flag for verbose output
+- **Improved**: parseInt validation with immediate NaN check
+  - Separate validation for invalid number vs out of range
+  - Shows user what value was received in error
+
+#### Testing
+- **Added**: 5 comprehensive input validation tests (16 → 21 tests total)
+  - Non-array repos parameter
+  - Invalid user strings (empty, whitespace, null, number)
+  - Invalid count values (0, negative, NaN, string)
+  - Missing required field (name)
+  - Invalid name type
+- **Improved**: Mock typing strategy for better type safety
+  - Removed unsafe `as unknown as Mock` casting
+  - Use `vi.mocked()` for proper type inference
+  - Better Response type usage
+- **Standardized**: Error message assertions for consistency
+
+#### Code Quality
+- **Fixed**: Unsafe type casting in test mocks
+- **Improved**: Mock strategy using `vi.mocked()` for type safety
+- **Enhanced**: Error message consistency across tests
+
+### 📊 Impact
+
+- All 21 tests passing ✅ (+5 from v2.0.1)
+- Better input validation prevents runtime errors
+- More helpful error messages for users
+- Safer test code with proper typing
+- No breaking changes
+
+---
+
 ## [2.0.1] - 2025-11-01
 
 ### 🐛 Bug Fixes & Code Quality Improvements

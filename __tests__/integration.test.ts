@@ -1,10 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fetchRepositories, configSchema } from '../src/index.js';
-import fetch from 'node-fetch';
+import type { Response } from 'node-fetch';
 
-vi.mock('node-fetch');
+// Mock node-fetch module
+vi.mock('node-fetch', () => ({
+  default: vi.fn(),
+}));
 
-const mockedFetch = fetch as unknown as Mock;
+// Import the mocked fetch after mocking
+const { default: fetch } = await import('node-fetch');
 
 describe('Integration: GitHub Comics CLI', () => {
   beforeEach(() => {
@@ -52,10 +56,10 @@ describe('Integration: GitHub Comics CLI', () => {
         { name: 'repo2', description: 'desc2', stargazers_count: 50, language: 'JavaScript' },
       ];
 
-      mockedFetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockRepos,
-      } as any);
+      } as unknown as Response);
 
       const result = await fetchRepositories('octocat');
 
@@ -67,14 +71,14 @@ describe('Integration: GitHub Comics CLI', () => {
     });
 
     it('includes authorization header when token provided', async () => {
-      mockedFetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => [{ name: 'repo', description: 'desc' }],
-      } as any);
+      } as unknown as Response);
 
       await fetchRepositories('testuser', 'test-token');
 
-      expect(mockedFetch).toHaveBeenCalledWith(
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
         expect.stringContaining('/users/testuser/repos'),
         expect.objectContaining({
           headers: expect.objectContaining({
@@ -85,46 +89,47 @@ describe('Integration: GitHub Comics CLI', () => {
     });
 
     it('throws error for invalid username', async () => {
-      await expect(fetchRepositories('invalid@username')).rejects.toThrow('Invalid GitHub username');
+      await expect(fetchRepositories('invalid@username'))
+        .rejects.toThrow('Invalid GitHub username: invalid@username');
     });
 
     it('throws error when API request fails with 404', async () => {
-      mockedFetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 404,
         statusText: 'Not Found',
-      } as any);
+      } as unknown as Response);
 
       await expect(fetchRepositories('nonexistent'))
-        .rejects.toThrow('User not found');
+        .rejects.toThrow('Failed to fetch repos for nonexistent: 404 User not found');
     });
 
     it('throws error when rate limited (403)', async () => {
-      mockedFetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 403,
         statusText: 'Forbidden',
-      } as any);
+      } as unknown as Response);
 
       await expect(fetchRepositories('ratelimited'))
-        .rejects.toThrow('API rate limit exceeded');
+        .rejects.toThrow('Failed to fetch repos for ratelimited: 403 API rate limit exceeded');
     });
 
     it('throws error for empty repository list', async () => {
-      mockedFetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => [],
-      } as any);
+      } as unknown as Response);
 
       await expect(fetchRepositories('emptyuser'))
-        .rejects.toThrow("has no public repositories");
+        .rejects.toThrow("User 'emptyuser' has no public repositories");
     });
 
     it('throws error for non-array response', async () => {
-      mockedFetch.mockResolvedValueOnce({
+      vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ error: 'invalid' }),
-      } as any);
+      } as unknown as Response);
 
       await expect(fetchRepositories('badresponse'))
         .rejects.toThrow('Invalid response from GitHub API');

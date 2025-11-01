@@ -98,11 +98,30 @@ export async function fetchRepositories(user: string, token?: string): Promise<R
  * @param user - GitHub username
  * @param count - Number of top repositories to include (default: 3)
  * @returns Formatted prompt for image generation
+ * @throws Error if inputs are invalid
  */
 export function createComicPrompt(repos: RepoInfo[], user: string, count: number = 3): string {
+  // Validate inputs
+  if (!Array.isArray(repos)) {
+    throw new Error('repos must be an array');
+  }
+
+  if (typeof user !== 'string' || user.trim().length === 0) {
+    throw new Error('user must be a non-empty string');
+  }
+
+  if (typeof count !== 'number' || isNaN(count) || count < 1) {
+    throw new Error('count must be a positive number');
+  }
+
   const topRepos = repos.slice(0, count);
 
   const repoDetails = topRepos.map((r, idx) => {
+    // Validate required field
+    if (!r.name || typeof r.name !== 'string') {
+      throw new Error(`Repository at index ${idx} is missing required field: name`);
+    }
+
     const stars = r.stargazers_count ? ` (⭐ ${r.stargazers_count})` : '';
     const lang = r.language ? ` [${r.language}]` : '';
     return `${idx + 1}. ${r.name}${lang}${stars}: ${r.description ?? 'No description'}`;

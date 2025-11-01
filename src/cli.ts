@@ -6,9 +6,17 @@ import { generateGithubComic, configSchema } from './index.js';
 
 // Load environment variables with error handling
 const envResult = loadEnv();
-if (envResult.error && process.env.NODE_ENV !== 'production') {
-  // Only warn in development if .env is missing, not an error
-  // Users can still provide env vars via command line
+if (envResult.error) {
+  // Log warning if .env file is missing or malformed
+  // This is informational only - users can provide env vars via CLI flags
+  const isProduction = process.env.NODE_ENV === 'production';
+  const message = `Info: No .env file found. ${isProduction ? 'Using system environment variables.' : 'You can create one or use --api-key flag.'}`;
+
+  // In production, we expect env vars to be set via system, so just note it
+  // In development, it's helpful to know .env is missing
+  if (!isProduction || process.env.DEBUG) {
+    console.warn(`⚠️  ${message}`);
+  }
 }
 
 const program = new Command();
@@ -16,7 +24,7 @@ const program = new Command();
 program
   .name('github-comics')
   .description('Generate comic strips from GitHub repositories using Gemini Flash 2.5 via Vercel AI Gateway')
-  .version('2.0.1');
+  .version('2.0.2');
 
 program
   .command('generate')
@@ -46,9 +54,17 @@ program
         GITHUB_TOKEN: githubToken,
       });
 
+      // Validate and parse repository count
       const repoCount = parseInt(options.count, 10);
-      if (isNaN(repoCount) || repoCount < 1 || repoCount > 10) {
+      // Check for NaN immediately after parsing to catch invalid inputs
+      if (isNaN(repoCount)) {
+        console.error('❌ Error: Repository count must be a valid number');
+        console.error(`   Received: "${options.count}"`);
+        process.exit(1);
+      }
+      if (repoCount < 1 || repoCount > 10) {
         console.error('❌ Error: Repository count must be between 1 and 10');
+        console.error(`   Received: ${repoCount}`);
         process.exit(1);
       }
 

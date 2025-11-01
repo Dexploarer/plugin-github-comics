@@ -1,6 +1,6 @@
 {
   "name": "github-comics-cli",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Generate comic strips from GitHub repos using Gemini Flash 2.5 via Vercel AI Gateway",
   "type": "module",
   "main": "dist/index.js",

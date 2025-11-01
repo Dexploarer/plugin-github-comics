@@ -78,4 +78,67 @@ describe('createComicPrompt', () => {
     expect(prompt).not.toContain('⭐');
     expect(prompt).not.toContain('[');
   });
+
+  describe('input validation', () => {
+    it('throws error when repos is not an array', () => {
+      expect(() => createComicPrompt(null as any, 'testuser', 3))
+        .toThrow('repos must be an array');
+
+      expect(() => createComicPrompt({} as any, 'testuser', 3))
+        .toThrow('repos must be an array');
+
+      expect(() => createComicPrompt('invalid' as any, 'testuser', 3))
+        .toThrow('repos must be an array');
+    });
+
+    it('throws error when user is not a valid string', () => {
+      const repos: RepoInfo[] = [{ name: 'repo', description: 'desc' }];
+
+      expect(() => createComicPrompt(repos, '', 3))
+        .toThrow('user must be a non-empty string');
+
+      expect(() => createComicPrompt(repos, '   ', 3))
+        .toThrow('user must be a non-empty string');
+
+      expect(() => createComicPrompt(repos, null as any, 3))
+        .toThrow('user must be a non-empty string');
+
+      expect(() => createComicPrompt(repos, 123 as any, 3))
+        .toThrow('user must be a non-empty string');
+    });
+
+    it('throws error when count is not a valid number', () => {
+      const repos: RepoInfo[] = [{ name: 'repo', description: 'desc' }];
+
+      expect(() => createComicPrompt(repos, 'testuser', 0))
+        .toThrow('count must be a positive number');
+
+      expect(() => createComicPrompt(repos, 'testuser', -1))
+        .toThrow('count must be a positive number');
+
+      expect(() => createComicPrompt(repos, 'testuser', NaN))
+        .toThrow('count must be a positive number');
+
+      expect(() => createComicPrompt(repos, 'testuser', 'invalid' as any))
+        .toThrow('count must be a positive number');
+    });
+
+    it('throws error when repository is missing required name field', () => {
+      const repos = [
+        { description: 'has description' } as any,
+      ];
+
+      expect(() => createComicPrompt(repos, 'testuser', 1))
+        .toThrow('Repository at index 0 is missing required field: name');
+    });
+
+    it('throws error when repository name is not a string', () => {
+      const repos = [
+        { name: 123, description: 'desc' } as any,
+      ];
+
+      expect(() => createComicPrompt(repos, 'testuser', 1))
+        .toThrow('Repository at index 0 is missing required field: name');
+    });
+  });
 });
